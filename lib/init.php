@@ -42,6 +42,7 @@ class CMB2_Post_Search_field {
 		echo $field_type->input( array(
 			'data-search' => json_encode( array(
 				'posttype'   => $field->args( 'post_type' ),
+				'post__in' => $field->args( 'post__in' )? $field->args( 'post__in' ) : [],
 				'selecttype' => 'radio' == $field->args( 'select_type' ) ? 'radio' : 'checkbox',
 				'selectbehavior' => 'replace' == $field->args( 'select_behavior' ) ? 'replace' : 'add',
 				'errortxt'   => esc_attr( $field_type->_text( 'error_text', __( 'An error has occurred. Please reload the page and try again.' ) ) ),
@@ -157,6 +158,7 @@ class CMB2_Post_Search_field {
 				send: function() {
 
 					var search = this;
+					console.log(search);
 					search.$spinner.addClass('is-active');
 
 					$.ajax( ajaxurl, {
@@ -166,6 +168,7 @@ class CMB2_Post_Search_field {
 							ps               : search.$input.val(),
 							action           : 'find_posts',
 							cmb2_post_search : true,
+							post__in         : search.post__in,
 							post_search_cpt  : search.posttype,
 							_ajax_nonce      : $('#find-posts #_ajax_nonce').val()
 						}
@@ -300,7 +303,7 @@ class CMB2_Post_Search_field {
 			&& 'find_posts' == $_POST['action']
 			&& ! empty( $_POST['post_search_cpt'] )
 		) {
-			add_action( 'pre_get_posts', array( $this, 'set_post_type' ) );
+			add_action( 'pre_get_posts', array( $this, 'set_query_args' ) );
 		}
 	}
 
@@ -308,9 +311,15 @@ class CMB2_Post_Search_field {
 	 * Set the post type via pre_get_posts
 	 * @param  array $query  The query instance
 	 */
-	public function set_post_type( $query ) {
+	public function set_query_args( $query ) {
 		$types = $_POST['post_search_cpt'];
 		$types = is_array( $types ) ? array_map( 'esc_attr', $types ) : esc_attr( $types );
+		$post__in = $_POST['post__in'];
+
+		if(isset($post__in) && sizeof($post__in) >= 1) {
+			$query->set( 'post__in', $post__in );
+		}
+		
 		$query->set( 'post_type', $types );
 	}
 
